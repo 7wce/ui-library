@@ -1,4 +1,4 @@
--- awkdsdfgm - skibidi toilet hub
+    -- awkdsdfgm - skibidi toilet hub
 local TextService    = game:GetService("TextService")
 local inputService   = game:GetService("UserInputService")
 local runService     = game:GetService("RunService")
@@ -634,24 +634,34 @@ function library:addTab(name)
                 main.BorderColor3 = Color3.fromRGB(60, 60, 60)
 			end)
         end
-        function group:addText(args) -- yaya addtext fuckkkkk
+        function group:addText(args)
             if not args.text then
                 return warn("⚠️ incorrect arguments ⚠️")
             end
 
-            local width = 205
-            local padding = 4
+            local TextService = game:GetService("TextService")
+
+            local outerWidth = 205
+            local innerWidth = outerWidth - 8
+            local paddingY = 4
+            local defaultTextSize = 13
             local font = Enum.Font.Code
-            local textSize = 13
+
+            -- extract font size from rich text if present
+            local detectedSize = args.text:match('<font%s+size="(%d+)"')
+            local actualTextSize = tonumber(detectedSize) or defaultTextSize
+
+            -- remove ALL rich text tags for size calculation
+            local plainText = args.text:gsub("<.->", "")
 
             local textBounds = TextService:GetTextSize(
-                args.text,
-                textSize,
+                plainText,
+                actualTextSize,
                 font,
-                Vector2.new(width, math.huge)
+                Vector2.new(innerWidth, math.huge)
             )
 
-            local totalHeight = textBounds.Y + padding
+            local totalHeight = textBounds.Y + paddingY + 2
 
             groupbox.Size += UDim2.new(0, 0, 0, totalHeight + 6)
 
@@ -673,7 +683,7 @@ function library:addTab(name)
             bg.BorderColor3 = Color3.fromRGB(0, 0, 0)
             bg.BorderSizePixel = 2
             bg.Position = UDim2.new(0.02, -1, 0, 0)
-            bg.Size = UDim2.new(0, width, 0, totalHeight)
+            bg.Size = UDim2.new(0, outerWidth, 0, totalHeight)
 
             main.Name = "main"
             main.Parent = bg
@@ -684,24 +694,23 @@ function library:addTab(name)
             label.Name = "label"
             label.Parent = main
             label.BackgroundTransparency = 1
-            label.Size = UDim2.new(1, -4, 1, -4)
-            label.Position = UDim2.new(0, 2, 0, 2)
+            label.Position = UDim2.new(0, 4, 0, 2)
+            label.Size = UDim2.new(1, -8, 0, textBounds.Y)
             label.Font = font
             label.Text = args.text
             label.TextColor3 = Color3.fromRGB(255, 255, 255)
-            label.TextSize = textSize
-            label.TextStrokeTransparency = 0
+            label.TextSize = defaultTextSize
             label.TextWrapped = true
-            label.TextYAlignment = Enum.TextYAlignment.Top
             label.TextXAlignment = Enum.TextXAlignment.Left
-			label.RichText = true -- yaya rich text asngjrngjenhrsth
+            label.TextYAlignment = Enum.TextYAlignment.Top
+            label.TextStrokeTransparency = 0
+            label.RichText = true
 
             gradient.Color = ColorSequence.new{
-                ColorSequenceKeypoint.new(0.00, Color3.fromRGB(105, 105, 105)),
-                ColorSequenceKeypoint.new(1.00, Color3.fromRGB(121, 121, 121))
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(105, 105, 105)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(121, 121, 121))
             }
             gradient.Rotation = 90
-            gradient.Name = "gradient"
             gradient.Parent = main
 
             return label
