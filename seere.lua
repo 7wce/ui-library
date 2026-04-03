@@ -1,29 +1,100 @@
-    -- awkdsdfgm - skibidi toilet hub
 local TextService    = game:GetService("TextService")
 local inputService   = game:GetService("UserInputService")
 local runService     = game:GetService("RunService")
 local tweenService   = game:GetService("TweenService")
 local players        = game:GetService("Players")
+local lighting       = game:GetService("Lighting")
 local localPlayer    = players.LocalPlayer
 local mouse          = localPlayer:GetMouse()
 
 local menu           = game:GetObjects("rbxassetid://12702460854")[1]
 menu.bg.Position     = UDim2.new(0.5,-menu.bg.Size.X.Offset/2,0.5,-menu.bg.Size.Y.Offset/2)
 menu.Parent          = game:GetService("CoreGui")
-local library = {cheatname = "";ext = "";gamename = "";colorpicking = false;tabbuttons = {};tabs = {};options = {};flags = {};scrolling = false;notifyText = Drawing.new("Text");playing = false;multiZindex = 200;toInvis = {};libColor = Color3.fromRGB(240, 142, 214);disabledcolor = Color3.fromRGB(233, 0, 0);blacklisted = {Enum.KeyCode.W,Enum.KeyCode.A,Enum.KeyCode.S,Enum.KeyCode.D,Enum.UserInputType.MouseMovement}}
 
-function draggable(a)local b=inputService;local c;local d;local e;local f;local function g(h)if not library.colorpicking then local i=h.Position-e;a.Position=UDim2.new(f.X.Scale,f.X.Offset+i.X,f.Y.Scale,f.Y.Offset+i.Y)end end;a.InputBegan:Connect(function(h)if h.UserInputType==Enum.UserInputType.MouseButton1 or h.UserInputType==Enum.UserInputType.Touch then c=true;e=h.Position;f=a.Position;h.Changed:Connect(function()if h.UserInputState==Enum.UserInputState.End then c=false end end)end end)a.InputChanged:Connect(function(h)if h.UserInputType==Enum.UserInputType.MouseMovement or h.UserInputType==Enum.UserInputType.Touch then d=h end end)b.InputChanged:Connect(function(h)if h==d and c then g(h)end end)end
+local bgBlur = Instance.new("BlurEffect", lighting)
+bgBlur.Enabled = true
+bgBlur.Size = 24
+
+local library = {
+    cheatname = "";
+    ext = "";
+    gamename = "";
+    colorpicking = false;
+    tabbuttons = {};
+    tabs = {};
+    options = {};
+    flags = {};
+    scrolling = false;
+    notifyText = Drawing.new("Text");
+    playing = false;
+    multiZindex = 200;
+    toInvis = {};
+    libColor = Color3.fromRGB(240, 142, 214);
+    disabledcolor = Color3.fromRGB(233, 0, 0);
+    blacklisted = {Enum.KeyCode.W,Enum.KeyCode.A,Enum.KeyCode.S,Enum.KeyCode.D,Enum.UserInputType.MouseMovement},
+    toggleKey = Enum.KeyCode.Insert
+}
+
+function draggable(a)
+    local b=inputService;
+    local c;
+    local d;
+    local e;
+    local f;
+    local function g(h)
+        if not library.colorpicking then 
+            local i=h.Position-e;
+            a.Position=UDim2.new(f.X.Scale,f.X.Offset+i.X,f.Y.Scale,f.Y.Offset+i.Y)
+        end
+    end;
+    a.InputBegan:Connect(function(h)
+        if h.UserInputType==Enum.UserInputType.MouseButton1 or h.UserInputType==Enum.UserInputType.Touch then
+            c=true;
+            e=h.Position;
+            f=a.Position;
+            h.Changed:Connect(function()
+                if h.UserInputState==Enum.UserInputState.End then
+                    c=false
+                end
+            end)
+        end
+    end)
+    a.InputChanged:Connect(function(h)
+        if h.UserInputType==Enum.UserInputType.MouseMovement or h.UserInputType==Enum.UserInputType.Touch then 
+            d=h 
+        end
+    end)
+    b.InputChanged:Connect(function(h)
+        if h==d and c then
+            g(h)
+        end
+    end)
+end
+
 draggable(menu.bg)
 
 local tabholder = menu.bg.bg.bg.bg.main.group
 local tabviewer = menu.bg.bg.bg.bg.tabbuttons
 
+local function tweenBlur(size)
+    return tweenService:Create(bgBlur, TweenInfo.new(0.2), {
+        Size = size
+    })
+end
+
 inputService.InputEnded:Connect(function(key)
-    if key.KeyCode == Enum.KeyCode.RightShift then
+    if key.KeyCode == library.toggleKey then
         menu.Enabled = not menu.Enabled
+
+        if menu.Enabled == false then
+            tweenBlur(0):Play()
+        else
+            tweenBlur(24):Play()
+        end
+
         library.scrolling = false
         library.colorpicking = false
-        for i,v in next, library.toInvis do
+        for _,v in next, library.toInvis do
             v.Visible = false
         end
     end
@@ -49,7 +120,7 @@ local keyNames = {
 }
 
 library.notifyText.Font = 2
-library.notifyText.Size = 13
+library.notifyText.Size = 20
 library.notifyText.Outline = true
 library.notifyText.Color = Color3.new(1,1,1)
 library.notifyText.Position = Vector2.new(10,60)
@@ -647,11 +718,9 @@ function library:addTab(name)
             local defaultTextSize = 13
             local font = Enum.Font.Code
 
-            -- extract font size from rich text if present
             local detectedSize = args.text:match('<font%s+size="(%d+)"')
             local actualTextSize = tonumber(detectedSize) or defaultTextSize
 
-            -- remove ALL rich text tags for size calculation
             local plainText = args.text:gsub("<.->", "")
 
             local textBounds = TextService:GetTextSize(
