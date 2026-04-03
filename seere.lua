@@ -1,4 +1,4 @@
-    -- awkdsdfgm - skibidi toilet hub
+-- awkdsdfgm - skibidi toilet hub
 local TextService    = game:GetService("TextService")
 local inputService   = game:GetService("UserInputService")
 local runService     = game:GetService("RunService")
@@ -694,6 +694,7 @@ function library:addTab(name)
             label.TextWrapped = true
             label.TextYAlignment = Enum.TextYAlignment.Top
             label.TextXAlignment = Enum.TextXAlignment.Left
+			label.RichText = true -- yaya rich text asngjrngjenhrsth
 
             gradient.Color = ColorSequence.new{
                 ColorSequenceKeypoint.new(0.00, Color3.fromRGB(105, 105, 105)),
