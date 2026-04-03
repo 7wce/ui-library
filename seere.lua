@@ -1752,7 +1752,7 @@ function library:addTab(name)
                     end
                 end
                 if not next and key == library.flags[args.flag] and args.callback then
-                    args.callback()
+                    args.callback(key, library.flags[args.flag])
                 end
             end)
 
