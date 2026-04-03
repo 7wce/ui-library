@@ -1873,4 +1873,20 @@ function library:deleteConfig()
     end
 end
 
+function library:toggle()
+    menu.Enabled = not menu.Enabled
+
+    if menu.Enabled == false then
+        tweenBlur(0):Play()
+    else
+        tweenBlur(24):Play()
+    end
+
+    library.scrolling = false
+    library.colorpicking = false
+    for _,v in next, library.toInvis do
+        v.Visible = false
+    end
+end
+
 return library -- fuck you i gotta add this return function
