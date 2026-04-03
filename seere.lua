@@ -1,4 +1,5 @@
--- awkdsdfgm - skibidi toilet hub
+    -- awkdsdfgm - skibidi toilet hub
+local TextService    = game:GetService("TextService")
 local inputService   = game:GetService("UserInputService")
 local runService     = game:GetService("RunService")
 local tweenService   = game:GetService("TweenService")
@@ -632,6 +633,77 @@ function library:addTab(name)
 			button.MouseLeave:connect(function()
                 main.BorderColor3 = Color3.fromRGB(60, 60, 60)
 			end)
+        end
+        function group:addText(args) -- yaya addtext fuckkkkk
+            if not args.text then
+                return warn("⚠️ incorrect arguments ⚠️")
+            end
+
+            local width = 205
+            local padding = 4
+            local font = Enum.Font.Code
+            local textSize = 13
+
+            local textBounds = TextService:GetTextSize(
+                args.text,
+                textSize,
+                font,
+                Vector2.new(width, math.huge)
+            )
+
+            local totalHeight = textBounds.Y + padding
+
+            groupbox.Size += UDim2.new(0, 0, 0, totalHeight + 6)
+
+            local textframe = Instance.new("Frame")
+            local bg = Instance.new("Frame")
+            local main = Instance.new("Frame")
+            local label = Instance.new("TextLabel")
+            local gradient = Instance.new("UIGradient")
+
+            textframe.Name = "textframe"
+            textframe.Parent = grouper
+            textframe.BackgroundTransparency = 1
+            textframe.BorderSizePixel = 0
+            textframe.Size = UDim2.new(1, 0, 0, totalHeight + 6)
+
+            bg.Name = "bg"
+            bg.Parent = textframe
+            bg.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+            bg.BorderColor3 = Color3.fromRGB(0, 0, 0)
+            bg.BorderSizePixel = 2
+            bg.Position = UDim2.new(0.02, -1, 0, 0)
+            bg.Size = UDim2.new(0, width, 0, totalHeight)
+
+            main.Name = "main"
+            main.Parent = bg
+            main.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+            main.BorderColor3 = Color3.fromRGB(60, 60, 60)
+            main.Size = UDim2.new(1, 0, 1, 0)
+
+            label.Name = "label"
+            label.Parent = main
+            label.BackgroundTransparency = 1
+            label.Size = UDim2.new(1, -4, 1, -4)
+            label.Position = UDim2.new(0, 2, 0, 2)
+            label.Font = font
+            label.Text = args.text
+            label.TextColor3 = Color3.fromRGB(255, 255, 255)
+            label.TextSize = textSize
+            label.TextStrokeTransparency = 0
+            label.TextWrapped = true
+            label.TextYAlignment = Enum.TextYAlignment.Top
+            label.TextXAlignment = Enum.TextXAlignment.Left
+
+            gradient.Color = ColorSequence.new{
+                ColorSequenceKeypoint.new(0.00, Color3.fromRGB(105, 105, 105)),
+                ColorSequenceKeypoint.new(1.00, Color3.fromRGB(121, 121, 121))
+            }
+            gradient.Rotation = 90
+            gradient.Name = "gradient"
+            gradient.Parent = main
+
+            return label
         end
         function group:addSlider(args,sub)
             if not args.flag or not args.max then return warn("⚠️ incorrect arguments ⚠️") end
