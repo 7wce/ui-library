@@ -1,4 +1,4 @@
-
+-- awkdsdfgm - skibidi toilet hub
 local inputService   = game:GetService("UserInputService")
 local runService     = game:GetService("RunService")
 local tweenService   = game:GetService("TweenService")
@@ -1721,3 +1721,5 @@ function library:deleteConfig()
         library:refreshConfigs()
     end
 end
+
+return library -- fuck you i gotta add this return function
