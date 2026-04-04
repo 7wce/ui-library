@@ -4,7 +4,7 @@ local seereWindow = seere:window()
 seereWindow:name("Kitty Hub")
 
 local InsaneTab = seereWindow:addTab("Insane!!")
-local KittyGroup = InsaneTab:createGroup("left", "Kitties")
+local KittyGroup = InsaneTab:createGroup("left", "Kitties") -- Left, Center, Right
 
 KittyGroup:addText({
 	text = "Hello kitties!! :3\n<font size=\"20\">How are you? :3</font>"
