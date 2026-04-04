@@ -399,7 +399,7 @@ function library:addTab(name)
                         end
                     end
                     if not next and key == library.flags[args.flag] and args.callback then
-                        args.callback()
+                        args.callback(key)
                     end
                 end)
     
@@ -997,7 +997,6 @@ function library:addTab(name)
             text.TextSize = 13.000
             text.TextStrokeTransparency = 0.000
             text.TextXAlignment = Enum.TextXAlignment.Left
-
 
             library.flags[args.flag] = args.value or ""
             library.options[args.flag] = {type = "textbox",changeState = function(text) box.Text = text end,skipflag = args.skipflag,oldargs = args}
@@ -1755,7 +1754,7 @@ function library:addTab(name)
                     end
                 end
                 if not next and key == library.flags[args.flag] and args.callback then
-                    args.callback()
+                    args.callback(key)
                 end
             end)
 
