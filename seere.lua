@@ -261,6 +261,12 @@ function library:window()
 			end
 		end
 	end)
+
+	if library.blurMenu == true then
+		bgBlur = Instance.new("BlurEffect", lighting)
+		bgBlur.Enabled = true
+		bgBlur.Size = 24
+	end
 	
 	function window:addTab(name)
 		task.wait(0.2)
@@ -2019,12 +2025,6 @@ function library:deleteConfig()
 		delfile("OsirisCFGS/"..library.flags["selected_config"]..".cfg")
 		library:refreshConfigs()
 	end
-end
-
-if library.blurMenu == true then
-	bgBlur = Instance.new("BlurEffect", lighting)
-	bgBlur.Enabled = true
-	bgBlur.Size = 24
 end
 
 return library -- fuck you i gotta add this return function
