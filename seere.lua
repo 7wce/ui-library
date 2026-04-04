@@ -32,7 +32,8 @@ local library = {
     libColor = Color3.fromRGB(240, 142, 214);
     disabledcolor = Color3.fromRGB(233, 0, 0);
     blacklisted = {Enum.KeyCode.W,Enum.KeyCode.A,Enum.KeyCode.S,Enum.KeyCode.D,Enum.UserInputType.MouseMovement},
-    toggleKey = Enum.KeyCode.Insert
+    toggleKey = Enum.KeyCode.Insert,
+    isChoosing = false
 }
 
 function draggable(a)
@@ -83,7 +84,7 @@ local function tweenBlur(size)
 end
 
 inputService.InputEnded:Connect(function(key)
-    if key.KeyCode == library.toggleKey then
+    if key.KeyCode == library.toggleKey and library.isChoosing ~= true then
         menu.Enabled = not menu.Enabled
 
         if menu.Enabled == false then
@@ -1727,8 +1728,8 @@ function library:addTab(name)
             button.BackgroundColor3 = Color3.fromRGB(187, 131, 255)
             button.BackgroundTransparency = 1.000
             button.BorderSizePixel = 0
-            button.Position = UDim2.new(0, 0, 0, 0)
-            button.Size = UDim2.new(1, 0, 1, 0)
+            button.Position = UDim2.new(7.09711117e-08, 0, 0, 0)
+            button.Size = UDim2.new(0.02, 0, 1, 0)
             button.Font = Enum.Font.Code
             button.Text = "--"
             button.TextColor3 = Color3.fromRGB(155, 155, 155)
@@ -1749,15 +1750,18 @@ function library:addTab(name)
                         library.flags[args.flag] = key
                         button.Text = keyNames[key] or key.Name
                         button.TextColor3 = Color3.fromRGB(155, 155, 155)
+                        isChoosing = false
                     end
                 end
                 if not next and key == library.flags[args.flag] and args.callback then
-                    args.callback(key, library.flags[args.flag])
+                    args.callback()
                 end
             end)
 
             button.MouseButton1Click:Connect(function()
                 if library.colorpicking then return end
+                if library.isChoosing then return end
+                isChoosing = true
                 library.flags[args.flag] = Enum.KeyCode.Unknown
                 button.Text = "..."
                 button.TextColor3 = Color3.new(0.2,0.2,0.2)
