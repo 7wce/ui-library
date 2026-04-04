@@ -456,14 +456,16 @@ function library:window()
 					button.Visible = false
 					text.TextColor3 = library.disabledcolor
 					text.Text = args.text
-					return end
+					return
+				end
 
-				local state = false
+				local state = args.default or false
 				function toggle(newState)
 					state = newState
 					library.flags[args.flag] = state
 					front.BackgroundColor3 = state and library.libColor or Color3.fromRGB(15,15,15)
 					text.TextColor3 = state and Color3.fromRGB(244, 244, 244) or Color3.fromRGB(144, 144, 144)
+
 					if args.callback then
 						args.callback(state)
 					end
@@ -488,6 +490,8 @@ function library:window()
 
 				library.flags[args.flag] = false
 				library.options[args.flag] = {type = "toggle",changeState = toggle,skipflag = args.skipflag,oldargs = args}
+
+				toggle(state)
 
 				local toggle = {}
 				function toggle:addKeybind(args)
