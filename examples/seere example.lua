@@ -69,6 +69,7 @@ KittyGroup:addTextbox({
 KittyGroup:addToggle({
 	flag = "enablekitties",
 	text = "Enable Kitties",
+	default = true,
 	callback = function(enabled)
 		print(enabled)
 	end,
