@@ -168,7 +168,7 @@ function Tween(...)
 end
 
 function library:window()
-	local menu           = script.gui or game:GetObjects("rbxassetid://107041454448455")[1]
+	local menu           = game:GetObjects("rbxassetid://107041454448455")[1]
 	local freemove       = Instance.new("ImageButton", menu)
 
 	menu.Parent          = core
