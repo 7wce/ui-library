@@ -1,10 +1,19 @@
-local TextService    = game:GetService("TextService")
-local inputService   = game:GetService("UserInputService")
-local runService     = game:GetService("RunService")
-local tweenService   = game:GetService("TweenService")
-local players        = game:GetService("Players")
-local lighting       = game:GetService("Lighting")
-local core           = game:GetService("CoreGui")
+local function getService(service)
+    local service = game:GetService(service)
+    if cloneref then
+        service = cloneref(game:GetService(service))
+    end
+
+    return service
+end
+
+local TextService    = getService("TextService")
+local inputService   = getService("UserInputService")
+local runService     = getService("RunService")
+local tweenService   = getService("TweenService")
+local players        = getService("Players")
+local lighting       = getService("Lighting")
+local core           = getService("CoreGui")
 local localPlayer    = players.LocalPlayer
 local mouse          = localPlayer:GetMouse()
 
@@ -592,7 +601,7 @@ function library:addTab(name)
 
                 local white, black = Color3.new(1,1,1), Color3.new(0,0,0)
                 local colors = {Color3.new(1,0,0),Color3.new(1,1,0),Color3.new(0,1,0),Color3.new(0,1,1),Color3.new(0,0,1),Color3.new(1,0,1),Color3.new(1,0,0)}
-                local heartbeat = game:GetService("RunService").Heartbeat
+                local heartbeat = getService("RunService").Heartbeat
 
                 local pickerX,pickerY,hueY = 0,0,0
                 local oldpercentX,oldpercentY = 0,0
@@ -722,7 +731,7 @@ function library:addTab(name)
                 return warn("⚠️ incorrect arguments ⚠️")
             end
 
-            local TextService = game:GetService("TextService")
+            local TextService = getService("TextService")
 
             local outerWidth = 205
             local innerWidth = outerWidth - 8
@@ -1646,7 +1655,7 @@ function library:addTab(name)
 
             local white, black = Color3.new(1,1,1), Color3.new(0,0,0)
             local colors = {Color3.new(1,0,0),Color3.new(1,1,0),Color3.new(0,1,0),Color3.new(0,1,1),Color3.new(0,0,1),Color3.new(1,0,1),Color3.new(1,0,0)}
-            local heartbeat = game:GetService("RunService").Heartbeat
+            local heartbeat = getService("RunService").Heartbeat
 
             local pickerX,pickerY,hueY = 0,0,0
             local oldpercentX,oldpercentY = 0,0
@@ -1811,7 +1820,7 @@ function library:createConfig()
             jig[i] = v
         end
     end
-    writefile("OsirisCFGS/"..name..".cfg",game:GetService("HttpService"):JSONEncode(jig))
+    writefile("OsirisCFGS/"..name..".cfg",HttpService:JSONEncode(jig))
     library:notify("Succesfully created config "..name..".cfg!")
     library:refreshConfigs()
 end
@@ -1829,7 +1838,7 @@ function library:saveConfig()
             jig[i] = v
         end
     end
-    writefile("OsirisCFGS/"..name..".cfg",game:GetService("HttpService"):JSONEncode(jig))
+    writefile("OsirisCFGS/"..name..".cfg",HttpService:JSONEncode(jig))
     library:notify("Succesfully updated config "..name..".cfg!")
     library:refreshConfigs()
 end
@@ -1840,7 +1849,7 @@ function library:loadConfig()
         library:notify("Config file not found!")
         return
     end
-    local config = game:GetService("HttpService"):JSONDecode(readfile("OsirisCFGS/"..name..".cfg"))
+    local config = HttpService:JSONDecode(readfile("OsirisCFGS/"..name..".cfg"))
     for i,v in next, library.options do
         spawn(function()pcall(function()
             if config[i] then
