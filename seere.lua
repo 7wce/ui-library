@@ -938,9 +938,10 @@ function library:addTab(name)
                 library.flags[args.flag] = box.Text
                 args.value = box.Text
                 if args.callback then
-                    args.callback()
+                    args.callback(box.Text)
                 end
             end)
+
             textbox.Name = "textbox"
             textbox.Parent = grouper
             textbox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
