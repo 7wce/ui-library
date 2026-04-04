@@ -154,7 +154,7 @@ function library:name(name)
 end
 
 function library:addTab(name)
-    task.wait(1)
+    task.wait(0.2)
     local newTab = tabholder.tab:Clone()
     local newButton = tabviewer.button:Clone()
 
@@ -193,7 +193,7 @@ function library:addTab(name)
     local topStuff = 2000
   
     function tab:createGroup(pos,groupname) -- newTab[pos == 0 and "left" or "right"] 
-        task.wait(1)
+        task.wait(0.2)
         local groupbox = Instance.new("Frame")
         local grouper = Instance.new("Frame")
         local UIListLayout = Instance.new("UIListLayout")
