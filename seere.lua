@@ -1,10 +1,13 @@
 local function getService(service)
-    local service = game:GetService(service)
+    local newService = nil
+
     if cloneref then
-        service = cloneref(game:GetService(service))
+        newService = cloneref(game:GetService(service))
+    else
+        newService = game:GetService(service)
     end
 
-    return service
+    return newService
 end
 
 local TextService    = getService("TextService")
