@@ -4,12 +4,20 @@ local runService     = game:GetService("RunService")
 local tweenService   = game:GetService("TweenService")
 local players        = game:GetService("Players")
 local lighting       = game:GetService("Lighting")
+local core           = game:GetService("CoreGui")
 local localPlayer    = players.LocalPlayer
 local mouse          = localPlayer:GetMouse()
 
 local menu           = game:GetObjects("rbxassetid://12702460854")[1]
+local freemove       = Instance.new("ImageButton", menu)
 menu.bg.Position     = UDim2.new(0.5,-menu.bg.Size.X.Offset/2,0.5,-menu.bg.Size.Y.Offset/2)
-menu.Parent          = game:GetService("CoreGui")
+menu.Parent          = core
+menu.bg.ZIndex = 99999
+freemove.Size = UDim2.new(1,0,1,0)
+freemove.Transparency = 1
+freemove.ImageTransparency = 1
+freemove.Modal = true
+freemove.ZIndex = -99999
 
 local bgBlur = Instance.new("BlurEffect", lighting)
 bgBlur.Enabled = true
@@ -86,6 +94,7 @@ end
 inputService.InputEnded:Connect(function(key)
     if key.KeyCode == library.toggleKey and library.isChoosing ~= true then
         menu.Enabled = not menu.Enabled
+        freemove.Modal = not freemove.Modal
 
         if menu.Enabled == false then
             tweenBlur(0):Play()
