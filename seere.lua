@@ -1017,7 +1017,7 @@ function library:window()
 					else
 						fill:TweenSize(UDim2.new(0,1,1,0),Enum.EasingDirection.In,Enum.EasingStyle.Sine,0.01)
 					end
-					valuetext.Text = value..sub
+					valuetext.Text = string.format("%." .. (args.decimals or 0) .. "f", value) .. sub
 					library.flags[args.flag] = value
 					if args.callback then
 						args.callback(value)
@@ -1033,7 +1033,9 @@ function library:window()
 						if value < 0 then value = 0 end
 						if value > args.max then value = args.max end
 						if value < args.min then value = args.min end
-						updateValue(math.floor(value))
+						local decimals = args.decimals or 0
+						local multiplier = 10 ^ decimals
+						updateValue(math.floor(value * multiplier + 0.5) / multiplier)
 					end
 					if scrolling and not entered then
 						valuetext.TextColor3 = Color3.fromRGB(255,255,255)
