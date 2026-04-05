@@ -43,6 +43,7 @@ KittyGroup:addSlider({
 	min = 1,
 	max = 5,
 	value = 1,
+	decimals = 1, -- 1.1 .. 5
 	callback = function(kittyvalue)
 		print(kittyvalue .. " cat")
 	end,
