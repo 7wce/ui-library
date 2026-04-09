@@ -26,9 +26,6 @@ local mouse          = localPlayer:GetMouse()
 local bgBlur = nil
 
 local library = {
-	cheatname = "";
-	ext = "";
-	gamename = "";
 	colorpicking = false;
 	tabbuttons = {};
 	tabs = {};
@@ -48,41 +45,64 @@ local library = {
 	},
 	toggleKey = Enum.KeyCode.Insert,
 	isChoosing = false,
-	blurMenu = nil
+	blurMenu = nil,
+	currentdrag = nil,
+	hidecenter = false
 }
 
-function draggable(a)
-	local b=inputService;
-	local c;
-	local d;
-	local e;
-	local f;
-	local function g(h)
-		if not library.colorpicking then 
-			local i=h.Position-e;
-			a.Position=UDim2.new(f.X.Scale,f.X.Offset+i.X,f.Y.Scale,f.Y.Offset+i.Y)
+function draggable(frame)
+	local isDragging = false
+	local dragInput
+	local dragStart
+	local startPosition
+
+	local function updateDrag(input)
+		if library.currentdrag ~= frame then
+			return
 		end
-	end;
-	a.InputBegan:Connect(function(h)
-		if h.UserInputType==Enum.UserInputType.MouseButton1 or h.UserInputType==Enum.UserInputType.Touch then
-			c=true;
-			e=h.Position;
-			f=a.Position;
-			h.Changed:Connect(function()
-				if h.UserInputState==Enum.UserInputState.End then
-					c=false
+
+		local delta = input.Position - dragStart
+
+		frame.Position = UDim2.new(
+			startPosition.X.Scale,
+			startPosition.X.Offset + delta.X,
+			startPosition.Y.Scale,
+			startPosition.Y.Offset + delta.Y
+		)
+	end
+
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch then
+
+			if library.currentdrag then
+				return
+			end
+
+			library.currentdrag = frame
+			isDragging = true
+			dragStart = input.Position
+			startPosition = frame.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					isDragging = false
+					library.currentdrag = nil
 				end
 			end)
 		end
 	end)
-	a.InputChanged:Connect(function(h)
-		if h.UserInputType==Enum.UserInputType.MouseMovement or h.UserInputType==Enum.UserInputType.Touch then 
-			d=h 
+
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement
+			or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
 		end
 	end)
-	b.InputChanged:Connect(function(h)
-		if h==d and c then
-			g(h)
+
+	inputService.InputChanged:Connect(function(input)
+		if isDragging and input == dragInput then
+			updateDrag(input)
 		end
 	end)
 end
@@ -168,8 +188,14 @@ function Tween(...)
 end
 
 function library:window()
-	local menu           = game:GetObjects("rbxassetid://107041454448455")[1]
-	local freemove       = Instance.new("ImageButton", menu)
+	local menu = nil
+	if runService:IsStudio() then
+		menu = script.gui
+	else
+		menu = game:GetObjects("rbxassetid://107041454448455")[1]
+	end
+	
+	local freemove = Instance.new("ImageButton", menu)
 
 	menu.Parent          = core
 	menu.bg.ZIndex = 99999
@@ -178,21 +204,32 @@ function library:window()
 	freemove.ImageTransparency = 1
 	freemove.Modal = true
 	freemove.ZIndex = -99999
-	
+
 	draggable(menu.bg)
+	draggable(menu.center)
 
 	local tabholder = menu.bg.bg.bg.bg.main.group
 	local tabviewer = menu.bg.bg.bg.bg.tabbuttons
 	local notifs = menu.notifs
-	
+
 	notifs.placeholder.Visible = false
-	
+
 	local window = {}
 	function window:toggle()
-		menu.Enabled = not menu.Enabled
+		if library.isChoosing then
+			return
+		end
+
+		menu.bg.Visible = not menu.bg.Visible
+		freemove.Modal = not freemove.Modal
+		freemove.Visible = not freemove.Visible
+		
+		if library.hidecenter == true then
+			menu.center.Visible = not menu.center.Visible
+		end
 
 		if library.blurMenu == true then
-			if menu.Enabled == false then
+			if menu.bg.Visible == false then
 				tweenBlur(0):Play()
 			else
 				tweenBlur(24):Play()
@@ -201,11 +238,12 @@ function library:window()
 
 		library.scrolling = false
 		library.colorpicking = false
+
 		for _,v in next, library.toInvis do
 			v.Visible = false
 		end
 	end
-	
+
 	function window:notify(args)
 		if not args.title or not args.text then
 			return
@@ -230,35 +268,87 @@ function library:window()
 			fadeAway(newClone, true)
 		end)
 	end
-	
+
 	function window:name(name)
 		menu.bg.pre.Text = name
 	end
 	
-	inputService.InputEnded:Connect(function(key)
-		if key.KeyCode == library.toggleKey then
-			if library.isChoosing then
-				return
-			end
+	function window:center()
+		local centeritem = {}
+		local center = menu:WaitForChild("center")
+		local title = center.title
 
-			menu.bg.Visible = not menu.bg.Visible
-			freemove.Modal = not freemove.Modal
-			freemove.Visible = not freemove.Visible
+		local MAX_BOUNDS = Vector2.new(1e5, 1e5)
 
-			if library.blurMenu == true then
-				if menu.bg.Visible == false then
-					tweenBlur(0):Play()
+		local function getFont(item: GuiLabel)
+			for _, font in pairs(Enum.Font:GetEnumItems()) do
+				if item.Font.Name == font.Name then
+					return font.Name
 				else
-					tweenBlur(24):Play()
+					continue
 				end
 			end
+			return nil
+		end
 
-			library.scrolling = false
-			library.colorpicking = false
+		local function stripRichText(text: string): string
+			return string.gsub(text, "<[^>]->", "")
+		end
 
-			for _,v in next, library.toInvis do
-				v.Visible = false
+		local function resizeArray(item: Frame, extraPadding: number?)
+			local textLabel = item:FindFirstChild("title")
+			if not textLabel then return end
+
+			local cleanText = stripRichText(textLabel.Text)
+
+			local textSize = TextService:GetTextSize(
+				cleanText,
+				textLabel.TextSize,
+				textLabel.Font,
+				MAX_BOUNDS
+			)
+
+			local padding = extraPadding or 25
+			local width = textSize.X + padding
+
+			item.Size = UDim2.new(0, width, 0, item.Size.Y.Offset)
+		end
+
+		local function resizeText(item: TextLabel)
+			local text = stripRichText(item.Text)
+			local fontSize = item.TextSize
+			local font = getFont(item)
+
+			local textSize = TextService:GetTextSize(text, fontSize, font, MAX_BOUNDS)
+
+			item.Size = UDim2.new(0, textSize.X, 0, textSize.Y)
+		end
+		
+		function centeritem:reset()
+			center.Position = UDim2.fromScale(0.5,0.019)
+		end
+		
+		function centeritem:change(text)
+			title.Text = text
+
+			resizeArray(center)
+			resizeText(title)
+		end
+		
+		function centeritem:outline(color)
+			if typeof(color) ~= "Color3" then
+				return
 			end
+			
+			title.UIStroke.Color = color
+		end
+		
+		return centeritem
+	end
+
+	inputService.InputEnded:Connect(function(key)
+		if key.KeyCode == library.toggleKey then
+			window:toggle()
 		end
 	end)
 
@@ -267,7 +357,7 @@ function library:window()
 		bgBlur.Enabled = true
 		bgBlur.Size = 24
 	end
-	
+
 	function window:addTab(name)
 		task.wait(0.2)
 		local newTab = tabholder.tab:Clone()
@@ -282,7 +372,7 @@ function library:window()
 		newButton.Modal = true
 		newButton.Visible = true
 		newButton.text.Text = name
-		
+
 		local function selectTab()
 			for i,v in next, library.tabs do
 				v.Visible = v == newTab
@@ -1892,7 +1982,8 @@ function library:window()
 					library.flags[args.flag] = val
 					button.Text = keyNames[val] or val.Name
 				end
-				inputService.InputBegan:Connect(function(key)
+				
+				inputService.InputBegan:Connect(function(key, typing)
 					local key = key.KeyCode == Enum.KeyCode.Unknown and key.UserInputType or key.KeyCode
 					if next then
 						if not table.find(library.blacklisted,key) then
@@ -1904,7 +1995,7 @@ function library:window()
 							library.isChoosing = false
 						end
 					end
-					if not next and key == library.flags[args.flag] and args.callback then
+					if not next and key == library.flags[args.flag] and args.callback and typing == false then
 						args.callback(key)
 					end
 				end)
@@ -1928,7 +2019,7 @@ function library:window()
 		end
 		return tab
 	end
-	
+
 	return window
 end
 
