@@ -1,5 +1,11 @@
 local seere = loadstring(game:HttpGet("https://raw.githubusercontent.com/7wce/ui-library/refs/heads/main/seere.lua"))()
+seere.blurMenu = true -- can be detected
+
 local seereWindow = seere:window()
+local center = seereWindow:center()
+
+center:change("Kitties.<font color=\"#ff2853\">Insanity</font>")
+center:outline(Color3.fromRGB(0, 0, 0))
 
 seereWindow:name("Kitty Hub")
 
@@ -75,3 +81,7 @@ KittyGroup:addToggle({
 		print(enabled)
 	end,
 })
+
+task.wait(2)
+
+center:reset()
