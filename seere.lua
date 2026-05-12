@@ -294,7 +294,7 @@ function library:window()
 	if runService:IsStudio() then
 		menu = script.gui
 	else
-		menu = game:GetObjects("rbxassetid://107041454448455")[1]
+		menu = game:GetObjects("rbxassetid://121051793914122")[1]
 	end
 	
 	protect(menu)
