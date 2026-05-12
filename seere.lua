@@ -17,13 +17,36 @@ local tweenService   = getService("TweenService")
 local players        = getService("Players")
 local lighting       = getService("Lighting")
 local core           = getService("CoreGui")
-if runService:IsStudio() then
-	core = players.LocalPlayer.PlayerGui
+
+local function protect(ui)
+	if runService:IsStudio() then
+		return
+	end
+	
+	local test = gethui
+	if test and test() then
+		ui.Parent = test()
+	else
+		local newHui = Instance.new("ScreenGui", core)
+		newHui.DisplayOrder = 2147483647
+		newHui.IgnoreGuiInset = true
+		
+		-- wanted to add a function where
+		-- it will block findfirstchild calls (...:FindFirstChild) etc
+		-- but some executors doesn't support it
+		
+		runService.heartbeat:Connect(function()
+			newHui.Enabled = true
+		end)
+	end
 end
+
 local localPlayer    = players.LocalPlayer
 local mouse          = localPlayer:GetMouse()
 
-local bgBlur = nil
+if runService:IsStudio() then
+	core = players.LocalPlayer.PlayerGui
+end
 
 local library = {
 	colorpicking = false;
@@ -45,10 +68,87 @@ local library = {
 	},
 	toggleKey = Enum.KeyCode.Insert,
 	isChoosing = false,
-	blurMenu = nil,
 	currentdrag = nil,
 	hidecenter = false
 }
+
+local MAX_BOUNDS = Vector2.new(1e5, 1e5)
+
+local function getFont(item: GuiLabel)
+	for _, font in pairs(Enum.Font:GetEnumItems()) do
+		if item.Font.Name == font.Name then
+			return font.Name
+		else
+			continue
+		end
+	end
+	return nil
+end
+
+local function stripRichText(text: string): string
+	return string.gsub(text, "<[^>]->", "")
+end
+
+local function resizeArray(
+	item: Frame,
+	extraPadding: number?,
+	textLabel: TextLabel?,
+	axis: string?
+)
+	local textLabel = textLabel or item:FindFirstChild("title")
+	if not textLabel then
+		return
+	end
+
+	axis = axis or "X"
+
+	local cleanText = stripRichText(textLabel.Text)
+
+	local textSize = TextService:GetTextSize(
+		cleanText,
+		textLabel.TextSize,
+		textLabel.Font,
+		MAX_BOUNDS
+	)
+
+	local padding = extraPadding or 25
+
+	local newX = item.Size.X.Offset
+	local newY = item.Size.Y.Offset
+
+	if axis == "X" or axis == "Both" then
+		newX = textSize.X + padding
+	end
+
+	if axis == "Y" or axis == "Both" then
+		newY = textSize.Y + padding
+	end
+
+	item.Size = UDim2.new(
+		item.Size.X.Scale,
+		newX,
+		item.Size.Y.Scale,
+		newY
+	)
+end
+
+local function resizeText(item: TextLabel)
+	local text = stripRichText(item.Text)
+
+	local textSize = TextService:GetTextSize(
+		text,
+		item.TextSize,
+		item.Font,
+		MAX_BOUNDS
+	)
+
+	item.Size = UDim2.new(
+		0,
+		textSize.X,
+		0,
+		textSize.Y
+	)
+end
 
 function draggable(frame)
 	local isDragging = false
@@ -57,6 +157,10 @@ function draggable(frame)
 	local startPosition
 
 	local function updateDrag(input)
+		if library.colorpicking then
+			return
+		end
+
 		if library.currentdrag ~= frame then
 			return
 		end
@@ -74,6 +178,10 @@ function draggable(frame)
 	frame.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch then
+
+			if library.colorpicking then
+				return
+			end
 
 			if library.currentdrag then
 				return
@@ -107,13 +215,7 @@ function draggable(frame)
 	end)
 end
 
-local function tweenBlur(size)
-	return tweenService:Create(bgBlur, TweenInfo.new(0.2), {
-		Size = size
-	})
-end
-
-local function fadeAway(item, remove: boolean?)
+local function fadeAway(item, remove)
 	local tweenInfo = TweenInfo.new(0.2)
 
 	if item:IsA("Frame") then
@@ -195,6 +297,8 @@ function library:window()
 		menu = game:GetObjects("rbxassetid://107041454448455")[1]
 	end
 	
+	protect(menu)
+
 	local freemove = Instance.new("ImageButton", menu)
 
 	menu.Parent          = core
@@ -223,17 +327,10 @@ function library:window()
 		menu.bg.Visible = not menu.bg.Visible
 		freemove.Modal = not freemove.Modal
 		freemove.Visible = not freemove.Visible
-		
-		if library.hidecenter == true then
-			menu.center.Visible = not menu.center.Visible
-		end
+		menu.frame.Visible = not menu.frame.Visible
 
-		if library.blurMenu == true then
-			if menu.bg.Visible == false then
-				tweenBlur(0):Play()
-			else
-				tweenBlur(24):Play()
-			end
+		if library.hidecenter then
+			menu.center.Visible = not menu.center.Visible
 		end
 
 		library.scrolling = false
@@ -259,8 +356,8 @@ function library:window()
 		end
 
 		local newClone = Placeholder:Clone()
-		newClone.topbar.Title.Text = title
-		newClone.Desc.Text = descr
+		newClone.topbar.title.Text = title
+		newClone.desc.Text = descr
 		newClone.Visible = true
 		newClone.Parent = notifs
 
@@ -272,77 +369,31 @@ function library:window()
 	function window:name(name)
 		menu.bg.pre.Text = name
 	end
-	
+
 	function window:center()
 		local centeritem = {}
 		local center = menu:WaitForChild("center")
 		local title = center.title
 
-		local MAX_BOUNDS = Vector2.new(1e5, 1e5)
-
-		local function getFont(item: GuiLabel)
-			for _, font in pairs(Enum.Font:GetEnumItems()) do
-				if item.Font.Name == font.Name then
-					return font.Name
-				else
-					continue
-				end
-			end
-			return nil
-		end
-
-		local function stripRichText(text: string): string
-			return string.gsub(text, "<[^>]->", "")
-		end
-
-		local function resizeArray(item: Frame, extraPadding: number?)
-			local textLabel = item:FindFirstChild("title")
-			if not textLabel then return end
-
-			local cleanText = stripRichText(textLabel.Text)
-
-			local textSize = TextService:GetTextSize(
-				cleanText,
-				textLabel.TextSize,
-				textLabel.Font,
-				MAX_BOUNDS
-			)
-
-			local padding = extraPadding or 25
-			local width = textSize.X + padding
-
-			item.Size = UDim2.new(0, width, 0, item.Size.Y.Offset)
-		end
-
-		local function resizeText(item: TextLabel)
-			local text = stripRichText(item.Text)
-			local fontSize = item.TextSize
-			local font = getFont(item)
-
-			local textSize = TextService:GetTextSize(text, fontSize, font, MAX_BOUNDS)
-
-			item.Size = UDim2.new(0, textSize.X, 0, textSize.Y)
-		end
-		
 		function centeritem:reset()
 			center.Position = UDim2.fromScale(0.5,0.019)
 		end
-		
+
 		function centeritem:change(text)
 			title.Text = text
 
 			resizeArray(center)
 			resizeText(title)
 		end
-		
+
 		function centeritem:outline(color)
 			if typeof(color) ~= "Color3" then
 				return
 			end
-			
+
 			title.UIStroke.Color = color
 		end
-		
+
 		return centeritem
 	end
 
@@ -351,12 +402,6 @@ function library:window()
 			window:toggle()
 		end
 	end)
-
-	if library.blurMenu == true then
-		bgBlur = Instance.new("BlurEffect", lighting)
-		bgBlur.Enabled = true
-		bgBlur.Size = 24
-	end
 
 	function window:addTab(name)
 		task.wait(0.2)
@@ -617,6 +662,7 @@ function library:window()
 						library.flags[args.flag] = val
 						button.Text = keyNames[val] or val.Name
 					end
+					
 					inputService.InputBegan:Connect(function(key)
 						local key = key.KeyCode == Enum.KeyCode.Unknown and key.UserInputType or key.KeyCode
 						if next then
@@ -800,80 +846,155 @@ function library:window()
 						mid.BorderColor3 = Color3.fromRGB(30,30,30)
 					end)
 
-					local function updateValue(value,fakevalue)
-						if typeof(value) == "table" then value = fakevalue end
+					local function updateValue(value)
+						if typeof(value) == "table" then return end
+
 						library.flags[args.flag] = value
 						front.BackgroundColor3 = value
+
 						if args.callback then
 							args.callback(value)
 						end
 					end
 
-					local white, black = Color3.new(1,1,1), Color3.new(0,0,0)
-					local colors = {Color3.new(1,0,0),Color3.new(1,1,0),Color3.new(0,1,0),Color3.new(0,1,1),Color3.new(0,0,1),Color3.new(1,0,1),Color3.new(1,0,0)}
-					local heartbeat = getService("RunService").Heartbeat
+					local white = Color3.new(1,1,1)
+					local black = Color3.new(0,0,0)
 
-					local pickerX,pickerY,hueY = 0,0,0
-					local oldpercentX,oldpercentY = 0,0
+					local colors = {
+						Color3.new(1,0,0),
+						Color3.new(1,1,0),
+						Color3.new(0,1,0),
+						Color3.new(0,1,1),
+						Color3.new(0,0,1),
+						Color3.new(1,0,1),
+						Color3.new(1,0,0)
+					}
+
+					local pickerX, pickerY = 0, 0
+					local hueY = 0
+
+					local hueIndexColor = Color3.new(1,0,0)
+
+					local draggingHue = false
+					local draggingPicker = false
+
+					local function getHueFromPercent(p)
+						p = math.clamp(p, 0, 1)
+
+						local scaled = p * 6
+						local i = math.floor(scaled) + 1
+						local t = scaled - math.floor(scaled)
+
+						local c1 = colors[i]
+						local c2 = colors[math.min(i + 1, #colors)]
+
+						return c1:Lerp(c2, t)
+					end
+
+					local function computeColor()
+						local base = white:Lerp(hueIndexColor, pickerX)
+						local final = base:Lerp(black, pickerY)
+
+						return final
+					end
+
+					local function refresh()
+						local c = computeColor()
+						updateValue(c)
+					end
 
 					hue.MouseEnter:Connect(function()
-						local input = hue.InputBegan:connect(function(key)
+						local input
+						input = hue.InputBegan:Connect(function(key)
 							if key.UserInputType == Enum.UserInputType.MouseButton1 then
-								while heartbeat:wait() and inputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
-									library.colorpicking = true
-									local percent = (hueY-hue.AbsolutePosition.Y-36)/hue.AbsoluteSize.Y
-									local num = math.max(1, math.min(7,math.floor(((percent*7+0.5)*100))/100))
-									local startC = colors[math.floor(num)]
-									local endC = colors[math.ceil(num)]
-									local color = white:lerp(picker.BackgroundColor3, oldpercentX):lerp(black, oldpercentY)
-									picker.BackgroundColor3 = startC:lerp(endC, num-math.floor(num)) or Color3.new(0, 0, 0)
-									updateValue(color)
+								draggingHue = true
+								library.colorpicking = true
+
+								while draggingHue and runService.Heartbeat:Wait() do
+									local mouseY = inputService:GetMouseLocation().Y
+									local percent = (mouseY - hue.AbsolutePosition.Y) / hue.AbsoluteSize.Y
+									percent = math.clamp(percent, 0, 1)
+
+									hueIndexColor = getHueFromPercent(1 - percent)
+
+									picker.BackgroundColor3 = hueIndexColor
+									refresh()
 								end
+
 								library.colorpicking = false
 							end
 						end)
+
 						local leave
-						leave = hue.MouseLeave:connect(function()
-							input:disconnect()
-							leave:disconnect()
+						leave = hue.MouseLeave:Connect(function()
+							input:Disconnect()
+							leave:Disconnect()
 						end)
 					end)
 
 					picker.MouseEnter:Connect(function()
-						local input = picker.InputBegan:connect(function(key)
+						local input
+						input = picker.InputBegan:Connect(function(key)
 							if key.UserInputType == Enum.UserInputType.MouseButton1 then
-								while heartbeat:wait() and inputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
-									library.colorpicking = true
-									local xPercent = (pickerX-picker.AbsolutePosition.X)/picker.AbsoluteSize.X
-									local yPercent = (pickerY-picker.AbsolutePosition.Y-36)/picker.AbsoluteSize.Y
-									local color = white:lerp(picker.BackgroundColor3, xPercent):lerp(black, yPercent)
-									updateValue(color)
-									oldpercentX,oldpercentY = xPercent,yPercent
+								draggingPicker = true
+								library.colorpicking = true
+
+								while draggingPicker and runService.Heartbeat:Wait() do
+									local mouse = inputService:GetMouseLocation()
+
+									pickerX = (mouse.X - picker.AbsolutePosition.X) / picker.AbsoluteSize.X
+									pickerY = (mouse.Y - picker.AbsolutePosition.Y) / picker.AbsoluteSize.Y
+
+									pickerX = math.clamp(pickerX, 0, 1)
+									pickerY = math.clamp(pickerY, 0, 1)
+
+									refresh()
 								end
+
 								library.colorpicking = false
 							end
 						end)
+
 						local leave
-						leave = picker.MouseLeave:connect(function()
-							input:disconnect()
-							leave:disconnect()
+						leave = picker.MouseLeave:Connect(function()
+							input:Disconnect()
+							leave:Disconnect()
 						end)
 					end)
 
-					hue.MouseMoved:connect(function(_, y)
-						hueY = y
+					inputService.InputEnded:Connect(function(input)
+						if input.UserInputType == Enum.UserInputType.MouseButton1 then
+							draggingHue = false
+							draggingPicker = false
+							library.colorpicking = false
+						end
 					end)
 
-					picker.MouseMoved:connect(function(x, y)
-						pickerX,pickerY = x,y
-					end)
+					local default = args.color or Color3.new(1,1,1)
 
-					table.insert(library.toInvis,colorFrame)
-					library.flags[args.flag] = Color3.new(1,1,1)
-					library.options[args.flag] = {type = "colorpicker",changeState = updateValue,skipflag = args.skipflag,oldargs = args}
+					library.flags[args.flag] = default
+					front.BackgroundColor3 = default
 
-					updateValue(args.color or Color3.new(1,1,1))
+					pickerX, pickerY = 0, 0
+					hueIndexColor = default
 
+					picker.BackgroundColor3 = hueIndexColor
+
+					library.options[args.flag] = {
+						type = "colorpicker",
+						changeState = function(value)
+							if typeof(value) == "Color3" then
+								hueIndexColor = value
+								picker.BackgroundColor3 = value
+								front.BackgroundColor3 = value
+								library.flags[args.flag] = value
+							end
+						end,
+						skipflag = args.skipflag,
+						oldargs = args
+					}
+
+					updateValue(default)
 				end
 				return toggle
 			end
@@ -1096,66 +1217,103 @@ function library:window()
 				text.TextStrokeTransparency = 0.000
 				text.TextXAlignment = Enum.TextXAlignment.Left
 
-				local entered = false
-				local scrolling = false
-				local amount = 0
+				local dragging = false
+
+				local function round(value, decimals)
+					local mult = 10 ^ (decimals or 0)
+					return math.floor(value * mult + 0.5) / mult
+				end
 
 				local function updateValue(value)
-					if library.colorpicking then return end
-					if value ~= 0 then
-						fill:TweenSize(UDim2.new(value/args.max,0,1,0),Enum.EasingDirection.In,Enum.EasingStyle.Sine,0.01)
-					else
-						fill:TweenSize(UDim2.new(0,1,1,0),Enum.EasingDirection.In,Enum.EasingStyle.Sine,0.01)
+					if library.colorpicking then
+						return
 					end
-					valuetext.Text = string.format("%." .. (args.decimals or 0) .. "f", value) .. sub
+
+					value = math.clamp(value, args.min or 0, args.max)
+
+					value = round(value, args.decimals)
+
+					fill.Size = UDim2.new(
+						(value - (args.min or 0)) / (args.max - (args.min or 0)),
+						0,
+						1,
+						0
+					)
+
+					valuetext.Text = string.format(
+						"%." .. (args.decimals or 0) .. "f",
+						value
+					) .. sub
+
 					library.flags[args.flag] = value
+
 					if args.callback then
 						args.callback(value)
 					end
 				end
-				local function updateScroll()
-					if scrolling or library.scrolling or not newTab.Visible or library.colorpicking then return end
-					while inputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and menu.Enabled do runService.RenderStepped:Wait()
-						library.scrolling = true
-						valuetext.TextColor3 = Color3.fromRGB(255,255,255)
-						scrolling = true
-						local value = args.min + ((mouse.X - button.AbsolutePosition.X) / button.AbsoluteSize.X) * (args.max - args.min)
-						if value < 0 then value = 0 end
-						if value > args.max then value = args.max end
-						if value < args.min then value = args.min end
-						local decimals = args.decimals or 0
-						local multiplier = 10 ^ decimals
-						updateValue(math.floor(value * multiplier + 0.5) / multiplier)
-					end
-					if scrolling and not entered then
-						valuetext.TextColor3 = Color3.fromRGB(255,255,255)
-					end
-					if not menu.Enabled then
-						entered = false
-					end
-					scrolling = false
-					library.scrolling = false
-				end
-				button.MouseEnter:connect(function()
-					if library.colorpicking then return end
-					if scrolling or entered then return end
-					entered = true
-					main.BorderColor3 = library.libColor
-					while entered do wait()
-						updateScroll()
-					end
-				end)
-				button.MouseLeave:connect(function()
-					entered = false
-					main.BorderColor3 = Color3.fromRGB(60, 60, 60)
-				end)
-				if args.value then
-					updateValue(args.value)
-				end
-				library.flags[args.flag] = 0
-				library.options[args.flag] = {type = "slider",changeState = updateValue,skipflag = args.skipflag,oldargs = args}
-				updateValue(args.value or 0)
 
+				local function updateSlider(input)
+					if library.colorpicking then
+						return
+					end
+
+					local percent = math.clamp(
+						(input.Position.X - button.AbsolutePosition.X) / button.AbsoluteSize.X,
+						0,
+						1
+					)
+
+					local value = (args.min or 0) + ((args.max - (args.min or 0)) * percent)
+
+					updateValue(value)
+				end
+
+				button.InputBegan:Connect(function(input)
+					if library.colorpicking then
+						return
+					end
+
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						dragging = true
+						updateSlider(input)
+					end
+				end)
+
+				button.InputEnded:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						dragging = false
+						main.BorderColor3 = Color3.fromRGB(60, 60, 60)
+					end
+				end)
+
+				inputService.InputChanged:Connect(function(input)
+					if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+						updateSlider(input)
+					end
+				end)
+
+				button.MouseEnter:Connect(function()
+					if not library.colorpicking then
+						main.BorderColor3 = library.libColor
+					end
+				end)
+
+				button.MouseLeave:Connect(function()
+					if not dragging then
+						main.BorderColor3 = Color3.fromRGB(60, 60, 60)
+					end
+				end)
+
+				library.flags[args.flag] = args.value or 0
+
+				library.options[args.flag] = {
+					type = "slider",
+					changeState = updateValue,
+					skipflag = args.skipflag,
+					oldargs = args
+				}
+
+				updateValue(args.value or 0)
 			end
 			function group:addTextbox(args)
 				if not args.flag then return warn("⚠️ incorrect arguments ⚠️") end
@@ -1168,7 +1326,7 @@ function library:window()
 				local gradient = Instance.new("UIGradient")
 				local text = Instance.new("TextLabel")
 
-				box:GetPropertyChangedSignal('Text'):Connect(function(val)
+				box.FocusLost:Connect(function()
 					if library.colorpicking then return end
 					library.flags[args.flag] = box.Text
 					args.value = box.Text
@@ -1863,80 +2021,155 @@ function library:window()
 					mid.BorderColor3 = Color3.fromRGB(30,30,30)
 				end)
 
-				local function updateValue(value,fakevalue)
-					if typeof(value) == "table" then value = fakevalue end
+				local function updateValue(value)
+					if typeof(value) == "table" then return end
+
 					library.flags[args.flag] = value
 					front.BackgroundColor3 = value
+
 					if args.callback then
 						args.callback(value)
 					end
 				end
 
-				local white, black = Color3.new(1,1,1), Color3.new(0,0,0)
-				local colors = {Color3.new(1,0,0),Color3.new(1,1,0),Color3.new(0,1,0),Color3.new(0,1,1),Color3.new(0,0,1),Color3.new(1,0,1),Color3.new(1,0,0)}
-				local heartbeat = getService("RunService").Heartbeat
+				local white = Color3.new(1,1,1)
+				local black = Color3.new(0,0,0)
 
-				local pickerX,pickerY,hueY = 0,0,0
-				local oldpercentX,oldpercentY = 0,0
+				local colors = {
+					Color3.new(1,0,0),
+					Color3.new(1,1,0),
+					Color3.new(0,1,0),
+					Color3.new(0,1,1),
+					Color3.new(0,0,1),
+					Color3.new(1,0,1),
+					Color3.new(1,0,0)
+				}
+
+				local pickerX, pickerY = 0, 0
+				local hueY = 0
+
+				local hueIndexColor = Color3.new(1,0,0)
+
+				local draggingHue = false
+				local draggingPicker = false
+
+				local function getHueFromPercent(p)
+					p = math.clamp(p, 0, 1)
+
+					local scaled = p * 6
+					local i = math.floor(scaled) + 1
+					local t = scaled - math.floor(scaled)
+
+					local c1 = colors[i]
+					local c2 = colors[math.min(i + 1, #colors)]
+
+					return c1:Lerp(c2, t)
+				end
+
+				local function computeColor()
+					local base = white:Lerp(hueIndexColor, pickerX)
+					local final = base:Lerp(black, pickerY)
+
+					return final
+				end
+
+				local function refresh()
+					local c = computeColor()
+					updateValue(c)
+				end
 
 				hue.MouseEnter:Connect(function()
-					local input = hue.InputBegan:connect(function(key)
+					local input
+					input = hue.InputBegan:Connect(function(key)
 						if key.UserInputType == Enum.UserInputType.MouseButton1 then
-							while heartbeat:wait() and inputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
-								library.colorpicking = true
-								local percent = (hueY-hue.AbsolutePosition.Y-36)/hue.AbsoluteSize.Y
-								local num = math.max(1, math.min(7,math.floor(((percent*7+0.5)*100))/100))
-								local startC = colors[math.floor(num)]
-								local endC = colors[math.ceil(num)]
-								local color = white:lerp(picker.BackgroundColor3, oldpercentX):lerp(black, oldpercentY)
-								picker.BackgroundColor3 = startC:lerp(endC, num-math.floor(num)) or Color3.new(0, 0, 0)
-								updateValue(color)
+							draggingHue = true
+							library.colorpicking = true
+
+							while draggingHue and runService.Heartbeat:Wait() do
+								local mouseY = inputService:GetMouseLocation().Y
+								local percent = (mouseY - hue.AbsolutePosition.Y) / hue.AbsoluteSize.Y
+								percent = math.clamp(percent, 0, 1)
+
+								hueIndexColor = getHueFromPercent(1 - percent)
+
+								picker.BackgroundColor3 = hueIndexColor
+								refresh()
 							end
+
 							library.colorpicking = false
 						end
 					end)
+
 					local leave
-					leave = hue.MouseLeave:connect(function()
-						input:disconnect()
-						leave:disconnect()
+					leave = hue.MouseLeave:Connect(function()
+						input:Disconnect()
+						leave:Disconnect()
 					end)
 				end)
 
 				picker.MouseEnter:Connect(function()
-					local input = picker.InputBegan:connect(function(key)
+					local input
+					input = picker.InputBegan:Connect(function(key)
 						if key.UserInputType == Enum.UserInputType.MouseButton1 then
-							while heartbeat:wait() and inputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
-								library.colorpicking = true
-								local xPercent = (pickerX-picker.AbsolutePosition.X)/picker.AbsoluteSize.X
-								local yPercent = (pickerY-picker.AbsolutePosition.Y-36)/picker.AbsoluteSize.Y
-								local color = white:lerp(picker.BackgroundColor3, xPercent):lerp(black, yPercent)
-								updateValue(color)
-								oldpercentX,oldpercentY = xPercent,yPercent
+							draggingPicker = true
+							library.colorpicking = true
+
+							while draggingPicker and runService.Heartbeat:Wait() do
+								local mouse = inputService:GetMouseLocation()
+
+								pickerX = (mouse.X - picker.AbsolutePosition.X) / picker.AbsoluteSize.X
+								pickerY = (mouse.Y - picker.AbsolutePosition.Y) / picker.AbsoluteSize.Y
+
+								pickerX = math.clamp(pickerX, 0, 1)
+								pickerY = math.clamp(pickerY, 0, 1)
+
+								refresh()
 							end
+
 							library.colorpicking = false
 						end
 					end)
+
 					local leave
-					leave = picker.MouseLeave:connect(function()
-						input:disconnect()
-						leave:disconnect()
+					leave = picker.MouseLeave:Connect(function()
+						input:Disconnect()
+						leave:Disconnect()
 					end)
 				end)
 
-				hue.MouseMoved:connect(function(_, y)
-					hueY = y
+				inputService.InputEnded:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						draggingHue = false
+						draggingPicker = false
+						library.colorpicking = false
+					end
 				end)
 
-				picker.MouseMoved:connect(function(x, y)
-					pickerX,pickerY = x,y
-				end)
+				local default = args.color or Color3.new(1,1,1)
 
-				table.insert(library.toInvis,colorFrame)
-				library.flags[args.flag] = Color3.new(1,1,1)
-				library.options[args.flag] = {type = "colorpicker",changeState = updateValue,skipflag = args.skipflag,oldargs = args}
+				library.flags[args.flag] = default
+				front.BackgroundColor3 = default
 
-				updateValue(args.color or Color3.new(1,1,1))
+				pickerX, pickerY = 0, 0
+				hueIndexColor = default
 
+				picker.BackgroundColor3 = hueIndexColor
+
+				library.options[args.flag] = {
+					type = "colorpicker",
+					changeState = function(value)
+						if typeof(value) == "Color3" then
+							hueIndexColor = value
+							picker.BackgroundColor3 = value
+							front.BackgroundColor3 = value
+							library.flags[args.flag] = value
+						end
+					end,
+					skipflag = args.skipflag,
+					oldargs = args
+				}
+
+				updateValue(default)
 			end
 			function group:addKeybind(args)
 				if not args.flag then return warn("⚠️ incorrect arguments ⚠️ - missing args on toggle:keybind") end
@@ -1982,7 +2215,7 @@ function library:window()
 					library.flags[args.flag] = val
 					button.Text = keyNames[val] or val.Name
 				end
-				
+
 				inputService.InputBegan:Connect(function(key, typing)
 					local key = key.KeyCode == Enum.KeyCode.Unknown and key.UserInputType or key.KeyCode
 					if next then
@@ -2033,7 +2266,7 @@ end
 function library:createConfig()
 	local name = library.flags["config_name"]
 	if contains(library.options["selected_config"].values, name) then return library:notify(name..".cfg already exists!") end
-	if name == "" then return library:notify("Put a name goofy") end
+	if name == "" then return library:notify("cfg needs a name") end
 	local jig = {}
 	for i,v in next, library.flags do
 		if library.options[i].skipflag then continue end
@@ -2045,7 +2278,7 @@ function library:createConfig()
 			jig[i] = v
 		end
 	end
-	writefile("OsirisCFGS/"..name..".cfg",HttpService:JSONEncode(jig))
+	writefile("SeereRework/cfg/"..name..".cfg",HttpService:JSONEncode(jig))
 	library:notify("Succesfully created config "..name..".cfg!")
 	library:refreshConfigs()
 end
@@ -2063,18 +2296,18 @@ function library:saveConfig()
 			jig[i] = v
 		end
 	end
-	writefile("OsirisCFGS/"..name..".cfg",HttpService:JSONEncode(jig))
+	writefile("SeereRework/cfg/"..name..".cfg",HttpService:JSONEncode(jig))
 	library:notify("Succesfully updated config "..name..".cfg!")
 	library:refreshConfigs()
 end
 
 function library:loadConfig()
 	local name = library.flags["selected_config"]
-	if not isfile("OsirisCFGS/"..name..".cfg") then
+	if not isfile("SeereRework/cfg/"..name..".cfg") then
 		library:notify("Config file not found!")
 		return
 	end
-	local config = HttpService:JSONDecode(readfile("OsirisCFGS/"..name..".cfg"))
+	local config = HttpService:JSONDecode(readfile("SeereRework/cfg/"..name..".cfg"))
 	for i,v in next, library.options do
 		spawn(function()
 			pcall(function()
@@ -2111,15 +2344,15 @@ end
 
 function library:refreshConfigs()
 	local tbl = {}
-	for i,v in next, listfiles("OsirisCFGS") do
+	for i,v in next, listfiles("SeereRework/cfg") do
 		table.insert(tbl,v)
 	end
 	library.options["selected_config"].refresh(tbl)
 end
 
 function library:deleteConfig()
-	if isfile("OsirisCFGS/"..library.flags["selected_config"]..".cfg") then
-		delfile("OsirisCFGS/"..library.flags["selected_config"]..".cfg")
+	if isfile("SeereRework/cfg/"..library.flags["selected_config"]..".cfg") then
+		delfile("SeereRework/cfg/"..library.flags["selected_config"]..".cfg")
 		library:refreshConfigs()
 	end
 end
