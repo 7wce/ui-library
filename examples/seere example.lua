@@ -1,9 +1,7 @@
 local seere = loadstring(game:HttpGet("https://raw.githubusercontent.com/7wce/ui-library/refs/heads/main/seere.lua"))()
-seere.blurMenu = true -- can be detected
 
 local seereWindow = seere:window()
 local center = seereWindow:center()
-
 center:change("Kitties.<font color=\"#ff2853\">Insanity</font>")
 center:outline(Color3.fromRGB(0, 0, 0))
 
@@ -46,7 +44,7 @@ KittyGroup:addKeybind({
 KittyGroup:addSlider({
 	text = "Kitty spawner",
 	flag = "kitties",
-	min = 1,
+	min = 0,
 	max = 5,
 	value = 1,
 	decimals = 1, -- 1.1 .. 5
@@ -79,6 +77,18 @@ KittyGroup:addToggle({
 	default = true,
 	callback = function(enabled)
 		print(enabled)
+	end,
+})
+
+KittyGroup:addButton({
+	flag = "sendnotifkitty",
+	text = "Kitty Notifs",
+	callback = function()
+		seereWindow:notify({
+			title = "Helloo!!",
+			text = "boo:3\n\n\neeeee",
+			duration = 5
+		})
 	end,
 })
 
